@@ -234,7 +234,3 @@ workspace/
 Dockerfile
 docker-compose.yml
 ```
-
-## License
-
-MIT
