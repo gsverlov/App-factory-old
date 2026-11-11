@@ -28,6 +28,9 @@ class FactoryState(TypedDict):
     stage_sub_issues: Annotated[dict[str, str], _last_dict]
     repo_name: Annotated[str, _last]       # e.g. "ashtilawat/my-cool-app"
     workspace_path: Annotated[str, _last]  # e.g. "/app/workspace/LIN-42"
+    # Claude Code session ID of the architect agent, saved so the decompose
+    # node can continue that same session after Gate 2.
+    architect_session_id: Annotated[str, _last]
 
 
 # Linear state name -> graph entry node

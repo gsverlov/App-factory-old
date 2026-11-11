@@ -23,6 +23,9 @@ SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
 GITHUB_ORG = os.getenv("GITHUB_ORG", "ashtilawat")
 WORKSPACE_DIR = Path("/app/workspace")
 
+# Parallel dev agents — the decompose step may never start more than this
+MAX_DEV_AGENTS = 6
+
 # Timeouts
 AGENT_TIMEOUT = 3600  # 30 minutes
 

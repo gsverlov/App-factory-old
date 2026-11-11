@@ -6,6 +6,9 @@ _pending_
 ## Architecture Decision
 _pending_
 
+## Decomposition
+_pending_
+
 ## Implementation
 _pending_
 

@@ -5,10 +5,10 @@ import asyncio
 
 from langsmith import traceable
 
-from orchestrator.config import MEMORY_DIR, logger
+from orchestrator.config import MEMORY_DIR, MAX_DEV_AGENTS, logger
 from orchestrator.state import FactoryState
 from orchestrator.audit import audit_log
-from orchestrator.memory import append_memory
+from orchestrator.memory import append_memory, read_memory_section
 from orchestrator.slack import post_slack
 from orchestrator.linear import (
     get_issue_id,
@@ -90,12 +90,64 @@ def parse_subtasks(memory_text: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
+def cap_subtasks(subtasks: list[dict], limit: int = MAX_DEV_AGENTS) -> list[dict]:
+    """Never start more than `limit` dev agents.
+
+    Extra subtasks are folded into the last kept one, so no work is dropped.
+    """
+    if len(subtasks) <= limit:
+        return subtasks
+    kept, extra = subtasks[:limit], subtasks[limit:]
+    folded = "\n".join(f"- {st['title']}: {st['description']}" for st in extra)
+    kept[-1] = {
+        "title": kept[-1]["title"],
+        "description": f"{kept[-1]['description']}\n\nAlso build:\n{folded}",
+    }
+    return kept
+
+
+async def decompose_in_architect_session(state: FactoryState) -> list[dict]:
+    """Ask the architect agent itself to split the work.
+
+    Continues the architect's own Claude Code session (SDK `resume`), so the
+    agent that designed the app, and still remembers the reasoning it left out
+    of the written architecture, decides how many dev agents to start and
+    which files each one owns. Its answer is written to the memory file under
+    `## Decomposition`, where every dev agent will read it.
+
+    Returns [] if there is no session to continue or it produced no usable
+    split; the caller then falls back to the architect's written plan.
+    """
+    ticket_id = state["ticket_id"]
+    session_id = state.get("architect_session_id", "")
+    if not session_id:
+        return []
+    try:
+        await run_agent(
+            state, "decompose/SKILL.md", "Decomposition", resume_session_id=session_id
+        )
+    except Exception as e:
+        # e.g. the session's files are gone because the container was rebuilt
+        audit_log(ticket_id, "decompose_resume_failed", str(e))
+        return []
+    return parse_subtasks(read_memory_section(ticket_id, "Decomposition"))
+
+
 @traceable(run_type="chain", name="decompose")
 async def decompose(state: FactoryState) -> FactoryState:
-    """Parse subtasks from architecture and prepare for parallel dev."""
+    """Decide the subtasks for parallel dev: one dev agent per subtask."""
     ticket_id = state["ticket_id"]
-    memory_text = (MEMORY_DIR / f"{ticket_id}.md").read_text()
-    subtasks = parse_subtasks(memory_text)
+
+    # Preferred: the architect's own session makes the split
+    subtasks = await decompose_in_architect_session(state)
+
+    # Fallback: parse the subtask list the architect wrote in its document
+    if not subtasks:
+        audit_log(ticket_id, "decompose_fallback", "parsing subtasks from the architecture text")
+        memory_text = (MEMORY_DIR / f"{ticket_id}.md").read_text()
+        subtasks = parse_subtasks(memory_text)
+
+    subtasks = cap_subtasks(subtasks)
 
     if not subtasks:
         audit_log(ticket_id, "decompose_fallback", "no subtasks found, running single dev agent")
@@ -184,6 +236,9 @@ async def dev_parallel(state: FactoryState) -> FactoryState:
             f"**Scope**: {subtask_desc}\n\n"
             f"**Branch**: `{branch_name}` (already created — just check it out and pull)\n\n"
             f"Implement ONLY the files described in this subtask. "
+            f"The `## Decomposition` section of the memory file lists which files every "
+            f"agent owns. The other agents are writing theirs right now, in this same "
+            f"folder: do not create or edit a file that belongs to another subtask.\n\n"
             f"Commit with message: `{ticket_id}: {subtask_title}`"
         )
         result = await run_agent(state, "coding/SKILL.md", "Implementation", extra_prompt=extra)

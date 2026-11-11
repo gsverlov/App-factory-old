@@ -31,8 +31,17 @@ async def run_agent(
     memory_section: str,
     next_linear_state: str | None = None,
     extra_prompt: str = "",
+    save_session_as: str | None = None,
+    resume_session_id: str | None = None,
 ) -> FactoryState:
-    """Spawn a Claude Code session for the given skill and append output to memory."""
+    """Spawn a Claude Code session for the given skill and append output to memory.
+
+    save_session_as: state key to store this session's ID under, so a later
+        node can continue the same session.
+    resume_session_id: continue that earlier session instead of starting a
+        new one. The agent keeps everything it read and reasoned about before,
+        so it only gets the new skill instructions, not the memory file again.
+    """
     ticket_id = state["ticket_id"]
     memory_content = (MEMORY_DIR / f"{ticket_id}.md").read_text()
     skill_content = (SKILLS_DIR / skill_file).read_text()
@@ -40,14 +49,17 @@ async def run_agent(
     repo_name = state.get("repo_name", "")
     workspace_path = state.get("workspace_path", "/app")
 
-    prompt = (
-        f"You are working on ticket {ticket_id}: {state['title']}\n\n"
-        f"**Repo**: `{repo_name}`\n"
-        f"**Workspace**: `{workspace_path}`\n\n"
-        f"All code changes go in this workspace directory — it is the root of the app repo.\n\n"
-        f"## Memory File\n\n{memory_content}\n\n"
-        f"## Your Skill Instructions\n\n{skill_content}"
-    )
+    if resume_session_id:
+        prompt = f"## Your Next Instructions\n\n{skill_content}"
+    else:
+        prompt = (
+            f"You are working on ticket {ticket_id}: {state['title']}\n\n"
+            f"**Repo**: `{repo_name}`\n"
+            f"**Workspace**: `{workspace_path}`\n\n"
+            f"All code changes go in this workspace directory — it is the root of the app repo.\n\n"
+            f"## Memory File\n\n{memory_content}\n\n"
+            f"## Your Skill Instructions\n\n{skill_content}"
+        )
     if extra_prompt:
         prompt += f"\n\n{extra_prompt}"
 
@@ -70,6 +82,7 @@ async def run_agent(
             f"🟡 **{memory_section}** — agent started.",
         )
 
+    session_id = ""
     try:
         from claude_agent_sdk import query as claude_query, ClaudeAgentOptions
 
@@ -81,9 +94,12 @@ async def run_agent(
                 "mcp__linear__*", "mcp__github__*",
                 "mcp__vercel__*", "mcp__supabase__*", "mcp__slack__*",
             ],
+            resume=resume_session_id,
         )
         output_parts: list[str] = []
         async for message in claude_query(prompt=prompt, options=options):
+            # Every session has an ID; the SDK reports it on its messages
+            session_id = getattr(message, "session_id", None) or session_id
             if hasattr(message, "content"):
                 for block in message.content:
                     if hasattr(block, "text"):
@@ -115,4 +131,7 @@ async def run_agent(
         await complete_stage_sub_issue(ticket_id, memory_section, sub_issue_id)
 
     audit_log(ticket_id, f"agent_done:{memory_section}", f"{len(output)} chars")
-    return {**state, "current_state": memory_section}
+    new_state = {**state, "current_state": memory_section}
+    if save_session_as and session_id:
+        new_state[save_session_as] = session_id
+    return new_state

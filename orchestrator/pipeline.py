@@ -171,6 +171,7 @@ async def run_pipeline(ticket_id: str, title: str, state_name: str) -> None:
                 "stage_sub_issues": stage_subs,
                 "repo_name": repo_full,
                 "workspace_path": workspace_path,
+                "architect_session_id": "",
             }
             audit_log(ticket_id, "pipeline_start", f"{state_name} repo={repo_full}")
             await asyncio.wait_for(

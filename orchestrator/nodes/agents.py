@@ -9,7 +9,13 @@ async def pm_agent(state: FactoryState) -> FactoryState:
 
 
 async def architect_agent(state: FactoryState) -> FactoryState:
-    return await run_agent(state, "architecture/SKILL.md", "Architecture Decision")
+    # Save the session ID: the decompose node continues this same session
+    return await run_agent(
+        state,
+        "architecture/SKILL.md",
+        "Architecture Decision",
+        save_session_as="architect_session_id",
+    )
 
 
 async def review_agent(state: FactoryState) -> FactoryState:
