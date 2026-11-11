@@ -29,8 +29,14 @@ Each agent session loads one skill file from `.claude/skills/`:
 | Skill | Agent | Purpose |
 |-------|-------|---------|
 | `spec-writing/SKILL.md` | PM Agent | Turn a raw ticket into a structured spec |
+| `skill-writing/SKILL.md` | PM Agent (same session) | Write project-specific skill files for later agents |
 | `architecture/SKILL.md` | Architect Agent | Produce a technical architecture decision |
-| `coding/SKILL.md` | Dev Agent | Write code, open a PR |
+| `decompose/SKILL.md` | Architect Agent (same session) | Split the work between parallel dev agents, one owner per file |
+| `coding/SKILL.md` | Dev Agent | Write code for one subtask |
+| `merge-check/SKILL.md` | Merge Agent | Check where dev agents collided and fix the build |
 | `code-review/SKILL.md` | Review Agent | Review the PR for correctness and security |
+| `security-review/SKILL.md` | Security Agent | Review the PR for security problems only |
 | `test-writing/SKILL.md` | Test Agent | Write and run tests |
 | `deploy-checklist/SKILL.md` | Deploy Agent | Deploy to Vercel + Supabase and verify |
+
+For the architecture, coding, test-writing and deploy-checklist stages, the PM Agent writes a project-specific version of the skill file per ticket (`.claude/skills-generated/{ticket_id}/`), and that version is loaded in place of the fixed one. Code review and security review always use the fixed files above.
