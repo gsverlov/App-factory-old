@@ -15,6 +15,9 @@ _pending_
 ## Implementation
 _pending_
 
+## Merge Check
+_pending_
+
 ## Code Review
 _pending_
 

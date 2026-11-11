@@ -1,4 +1,4 @@
-"""Decomposition and parallel dev agent execution."""
+"""Decomposition, parallel dev agent execution, and the merge check."""
 
 import re
 import asyncio
@@ -269,8 +269,23 @@ async def dev_parallel(state: FactoryState) -> FactoryState:
         audit_log(ticket_id, "dev_parallel_error", error_msg)
         return {**state, "current_state": "Blocked", "error": error_msg}
 
-    # Open a single PR with all changes
     audit_log(ticket_id, "dev_parallel_done", f"all {len(subtasks)} subtasks complete")
+
+    # Merge agent: the dev agents shared one folder and one branch, so before
+    # the PR is opened one more session checks where their work collided and
+    # makes the combined app build.
+    await run_agent(
+        state,
+        "merge-check/SKILL.md",
+        "Merge Check",
+        extra_prompt=(
+            f"**Branch**: `{branch_name}`\n"
+            f"**Subtasks that just ran in parallel**: "
+            + "; ".join(f"{i + 1}. {st['title']}" for i, st in enumerate(subtasks))
+        ),
+    )
+
+    # Open a single PR with all changes
     try:
         from claude_agent_sdk import query as claude_query, ClaudeAgentOptions
 
