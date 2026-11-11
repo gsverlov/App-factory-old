@@ -9,6 +9,7 @@ from orchestrator.nodes import (
     decompose,
     dev_parallel,
     review_agent,
+    security_agent,
     test_agent,
     gate_1,
     gate_2,
@@ -26,10 +27,10 @@ def should_block(state: FactoryState) -> str:
 
 
 def qa_fanout(state: FactoryState) -> list[str]:
-    """After dev_parallel, fan out to both QA agents or block."""
+    """After dev_parallel, fan out to the three QA agents or block."""
     if state.get("error") or state.get("current_state") == "Blocked":
         return ["blocked_handler"]
-    return ["review_agent", "test_agent"]
+    return ["review_agent", "security_agent", "test_agent"]
 
 
 def build_graph() -> StateGraph:
@@ -44,13 +45,14 @@ def build_graph() -> StateGraph:
     builder.add_node("decompose", decompose)
     builder.add_node("dev_parallel", dev_parallel)
     builder.add_node("review_agent", review_agent)
+    builder.add_node("security_agent", security_agent)
     builder.add_node("test_agent", test_agent)
     builder.add_node("gate_3", gate_3)
     builder.add_node("deploy_agent", deploy_agent)
     builder.add_node("done_handler", done_handler)
     builder.add_node("blocked_handler", blocked_handler)
 
-    # Edges: Spec → Gate 1 → Arch → Gate 2 → Decompose → Parallel Dev → QA → Gate 3 → Deploy
+    # Edges: Spec → Gate 1 → Arch → Gate 2 → Decompose → Parallel Dev → QA (review, security, tests) → Gate 3 → Deploy
     builder.set_entry_point("pm_agent")
     builder.add_conditional_edges(
         "pm_agent", should_block, {"blocked_handler": "blocked_handler", "continue": "gate_1"}
@@ -62,11 +64,12 @@ def build_graph() -> StateGraph:
     builder.add_edge("gate_2", "decompose")
     builder.add_edge("decompose", "dev_parallel")
 
-    # Fan-out: dev_parallel -> review + test in parallel (or block)
+    # Fan-out: dev_parallel -> review + security + test in parallel (or block)
     builder.add_conditional_edges("dev_parallel", qa_fanout)
 
-    # Fan-in: both QA agents -> gate_3
+    # Fan-in: all three QA agents -> gate_3
     builder.add_edge("review_agent", "gate_3")
+    builder.add_edge("security_agent", "gate_3")
     builder.add_edge("test_agent", "gate_3")
 
     builder.add_edge("gate_3", "deploy_agent")

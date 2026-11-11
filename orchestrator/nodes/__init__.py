@@ -4,6 +4,7 @@ from orchestrator.nodes.agents import (
     pm_agent,
     architect_agent,
     review_agent,
+    security_agent,
     test_agent,
     deploy_agent,
 )
@@ -15,6 +16,7 @@ __all__ = [
     "pm_agent",
     "architect_agent",
     "review_agent",
+    "security_agent",
     "test_agent",
     "deploy_agent",
     "decompose",

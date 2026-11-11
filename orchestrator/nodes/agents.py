@@ -55,6 +55,11 @@ async def review_agent(state: FactoryState) -> FactoryState:
     return await run_agent(state, "code-review/SKILL.md", "Code Review")
 
 
+async def security_agent(state: FactoryState) -> FactoryState:
+    # Runs at the same time as the review and test agents, with a fixed skill file
+    return await run_agent(state, "security-review/SKILL.md", "Security Review")
+
+
 async def test_agent(state: FactoryState) -> FactoryState:
     return await run_agent(state, "test-writing/SKILL.md", "Test Results")
 

@@ -30,7 +30,8 @@ async def done_handler(state: FactoryState) -> FactoryState:
             f"🟢 **Pipeline complete — deployed successfully.**\n\n"
             f"Repo: [`{repo_name}`](https://github.com/{repo_name})\n"
             f"{deploy_info}\n\n"
-            f"All 6 stages (Spec, Architecture, Implementation, Code Review, Tests, Deploy) "
+            f"All 7 stages (Spec, Architecture, Implementation, Code Review, Security Review, "
+            f"Tests, Deploy) "
             f"completed. See sub-issues for details on each stage.",
         )
 

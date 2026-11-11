@@ -17,6 +17,7 @@ AGENT_STAGES = [
     ("Architecture", "Architect Agent produces a technical design and subtask breakdown"),
     ("Implementation", "Dev Agent writes code and opens a PR"),
     ("Code Review", "Review Agent checks correctness, security, and conventions"),
+    ("Security Review", "Security Agent checks for secrets, injection, and missing access control"),
     ("Tests", "Test Agent writes and runs Jest tests"),
     ("Deploy", "Deploy Agent ships to Vercel and verifies health"),
 ]
@@ -170,7 +171,7 @@ async def ensure_stage_sub_issues(ticket_id: str) -> dict[str, str]:
     if mapping:
         lines = [
             "⚪ **Pipeline started.**\n",
-            "This ticket will be built automatically through 6 stages, "
+            f"This ticket will be built automatically through {len(AGENT_STAGES)} stages, "
             "with 3 human approval gates. Each stage has its own sub-issue "
             "for detailed tracking.\n",
             "**Stages:**",
