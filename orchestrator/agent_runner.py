@@ -2,10 +2,11 @@
 
 from langsmith import traceable
 
-from orchestrator.config import SKILLS_DIR, MEMORY_DIR, logger
+from orchestrator.config import MEMORY_DIR, logger
 from orchestrator.state import FactoryState
 from orchestrator.audit import audit_log
 from orchestrator.memory import append_memory
+from orchestrator.skills import load_skill
 from orchestrator.linear import (
     update_linear_state,
     complete_stage_sub_issue,
@@ -44,7 +45,8 @@ async def run_agent(
     """
     ticket_id = state["ticket_id"]
     memory_content = (MEMORY_DIR / f"{ticket_id}.md").read_text()
-    skill_content = (SKILLS_DIR / skill_file).read_text()
+    # Project-specific skill file for this ticket if one exists, else the fixed one
+    skill_content = load_skill(ticket_id, skill_file)
 
     repo_name = state.get("repo_name", "")
     workspace_path = state.get("workspace_path", "/app")

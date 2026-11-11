@@ -28,8 +28,10 @@ class FactoryState(TypedDict):
     stage_sub_issues: Annotated[dict[str, str], _last_dict]
     repo_name: Annotated[str, _last]       # e.g. "ashtilawat/my-cool-app"
     workspace_path: Annotated[str, _last]  # e.g. "/app/workspace/LIN-42"
-    # Claude Code session ID of the architect agent, saved so the decompose
-    # node can continue that same session after Gate 2.
+    # Claude Code session IDs, saved so a later step can continue that session:
+    # the PM agent's (to write project-specific skill files) and the architect
+    # agent's (so the decompose node can continue it after Gate 2).
+    pm_session_id: Annotated[str, _last]
     architect_session_id: Annotated[str, _last]
 
 

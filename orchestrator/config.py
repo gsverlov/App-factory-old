@@ -13,6 +13,8 @@ MEMORY_DIR = Path("memory")
 AUDIT_DIR = Path("audit")
 TEMPLATE_PATH = MEMORY_DIR / "_template.md"
 SKILLS_DIR = Path(".claude/skills")
+# Project-specific skill files the PM agent writes, one folder per ticket
+GENERATED_SKILLS_DIR = Path(".claude/skills-generated")
 DB_PATH = "factory.db"
 
 # API keys and secrets

@@ -3,6 +3,9 @@
 ## Spec
 _pending_
 
+## Project Skills
+_pending_
+
 ## Architecture Decision
 _pending_
 

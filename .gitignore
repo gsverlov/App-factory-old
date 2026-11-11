@@ -4,6 +4,7 @@ __pycache__/
 node_modules/
 *.pyc
 .claude/settings.local.json
+.claude/skills-generated/
 workspace/
 audit/
 memory/
