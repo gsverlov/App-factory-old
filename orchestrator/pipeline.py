@@ -11,6 +11,7 @@ from orchestrator.state import FactoryState
 from orchestrator.audit import audit_log
 from orchestrator.memory import append_memory
 from orchestrator.slack import post_slack
+from orchestrator.mcp_config import load_mcp_servers, write_mcp_json
 from orchestrator.linear import (
     update_linear_state,
     ensure_stage_sub_issues,
@@ -52,6 +53,7 @@ async def create_app_infra(ticket_id: str, title: str) -> tuple[str, str]:
             cwd=str(workspace),
             permission_mode="bypassPermissions",
             allowed_tools=["Bash", "mcp__github__*", "mcp__vercel__*", "mcp__supabase__*"],
+            mcp_servers=load_mcp_servers(workspace),
         )
         prompt = (
             f"Set up the infrastructure for a new app. Do these steps in order:\n\n"
@@ -85,6 +87,10 @@ async def create_app_infra(ticket_id: str, title: str) -> tuple[str, str]:
     except ImportError:
         logger.warning("claude-agent-sdk not available, stubbing infra creation")
         workspace.mkdir(parents=True, exist_ok=True)
+
+    # Written after the repo is cloned (git won't clone into a folder that
+    # already has files in it). Every agent for this ticket reads this file.
+    write_mcp_json(workspace)
 
     # Post infra creation to Linear
     issue_info = await get_issue_id(ticket_id)

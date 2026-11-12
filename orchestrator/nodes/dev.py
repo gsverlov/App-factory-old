@@ -9,6 +9,7 @@ from orchestrator.config import MEMORY_DIR, MAX_DEV_AGENTS, logger
 from orchestrator.state import FactoryState
 from orchestrator.audit import audit_log
 from orchestrator.memory import append_memory, read_memory_section
+from orchestrator.mcp_config import load_mcp_servers
 from orchestrator.slack import post_slack
 from orchestrator.linear import (
     get_issue_id,
@@ -293,6 +294,7 @@ async def dev_parallel(state: FactoryState) -> FactoryState:
             cwd=workspace_path,
             permission_mode="bypassPermissions",
             allowed_tools=["Bash", "Read", "Glob", "mcp__github__*", "mcp__linear__*"],
+            mcp_servers=load_mcp_servers(workspace_path),
         )
         pr_prompt = (
             f"You are working on ticket {ticket_id}: {state['title']}\n\n"

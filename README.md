@@ -2,7 +2,7 @@
 
 Ticket in, deployed web app out. The full SDLC — spec, architecture, code, review, tests, deploy — handled by Claude Code agents running in parallel. You approve at three gates.
 
-**~1,500 lines of Python across 17 modules. 10 skills. 5 MCPs. You can read every file in one sitting.**
+**~1,500 lines of Python across 18 modules. 10 skills. 5 MCPs. You can read every file in one sitting.**
 
 Right now this factory greenfields web apps from idea to production. You describe what you want, agents build and deploy it from scratch. Each app gets its own GitHub repo. Large tasks are automatically decomposed into subtasks and built in parallel. Brownfield support (existing codebases, new features, bug fixes) is next.
 
@@ -17,6 +17,7 @@ The problem this fork works on: the dev agents all write to one folder on one gi
 | **Decompose in the architect's session** | The decompose node continues the architect agent's own Claude Code session (Agent SDK `resume`) instead of running a regex over its written plan. The agent that designed the app decides how many dev agents to start (1 to 6) and which files each one owns. The regex parser is kept as the fallback. | `orchestrator/nodes/dev.py`, `orchestrator/agent_runner.py`, `.claude/skills/decompose/` |
 | **Merge agent** | After the parallel dev agents finish, one more session compares the git log against the file ownership list, checks every file two agents touched, builds anything missing, and fixes the build before the PR is opened. | `orchestrator/nodes/dev.py`, `.claude/skills/merge-check/` |
 | **Project-specific skill files** | After writing the spec, the PM agent writes a version of the architecture, coding, test and deploy skill files that fits this app. Agents load those in place of the fixed files. | `orchestrator/skills.py`, `orchestrator/nodes/agents.py`, `.claude/skills/skill-writing/` |
+| **MCP config per workspace** | The MCP servers used to sit in `.claude/settings.json`, which Claude Code does not read MCP servers from, in a folder the agents never start in. `create_app_infra` now writes a `.mcp.json` into each ticket's workspace, and every agent session gets the servers from that file (keys filled in from `.env` at start, never written to disk). | `orchestrator/mcp_config.py`, `orchestrator/agent_runner.py`, `orchestrator/pipeline.py` |
 | **Security review agent** | A third QA agent runs next to code review and tests, with a fixed checklist: secrets, injection, row-level security, unguarded pages, values trusted from the browser, `npm audit`. | `orchestrator/graph.py`, `.claude/skills/security-review/` |
 | **Skill files and parser** | Rewritten spec, architecture and coding skill files, and a subtask parser that accepts more than one list format. | `.claude/skills/`, `orchestrator/nodes/dev.py` |
 
@@ -229,6 +230,7 @@ orchestrator/
   slack.py                   # Slack webhook posts
   agent_runner.py            # Core agent runner (claude-agent-sdk), session capture + resume
   skills.py                  # Picks the fixed or project-specific skill file
+  mcp_config.py              # MCP servers; written to each workspace as .mcp.json
   graph.py                   # LangGraph DAG construction
   pipeline.py                # Pipeline start/resume + repo creation
   api.py                     # FastAPI endpoints
@@ -243,7 +245,6 @@ memory/
   LIN-xxx.md                 # One file per ticket, append-only
 .claude/
   CLAUDE.md                  # Master context for all agent sessions
-  settings.json              # MCP server configuration
   skills/
     spec-writing/SKILL.md    # How to write a spec
     skill-writing/SKILL.md   # How the PM agent writes project-specific skill files

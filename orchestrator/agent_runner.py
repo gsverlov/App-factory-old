@@ -7,6 +7,7 @@ from orchestrator.state import FactoryState
 from orchestrator.audit import audit_log
 from orchestrator.memory import append_memory
 from orchestrator.skills import load_skill
+from orchestrator.mcp_config import load_mcp_servers
 from orchestrator.linear import (
     update_linear_state,
     complete_stage_sub_issue,
@@ -96,6 +97,8 @@ async def run_agent(
                 "mcp__linear__*", "mcp__github__*",
                 "mcp__vercel__*", "mcp__supabase__*", "mcp__slack__*",
             ],
+            # The MCP servers listed in this ticket's workspace/.mcp.json
+            mcp_servers=load_mcp_servers(workspace_path),
             resume=resume_session_id,
         )
         output_parts: list[str] = []
